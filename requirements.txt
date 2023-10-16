@@ -1,4 +1,4 @@
 pip
 viam-sdk
 boto3
-pillow
+pillow == 10.0.1
