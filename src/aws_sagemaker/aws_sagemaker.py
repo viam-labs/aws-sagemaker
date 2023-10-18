@@ -66,11 +66,9 @@ class AWS(Vision, Reconfigurable):
         if access_json[-5:] != ".json":
             raise Exception(
                 "The location of the access JSON must end in '.json'")
-        camera_name = config.attributes.fields["camera_name"].string_value
-        if camera_name == "":
-            return
-        
-        return [camera_name]
+        source_cams = config.attributes.fields["source_cams"].list_value
+    
+        return source_cams
 
 
     # Handles attribute reconfiguration
@@ -81,10 +79,11 @@ class AWS(Vision, Reconfigurable):
         self.endpoint_name = config.attributes.fields["endpoint_name"].string_value
         self.aws_region = config.attributes.fields["aws_region"].string_value
         access_json = config.attributes.fields["access_json"].string_value
-        camera_name = config.attributes.fields["camera_name"].string_value
-        if camera_name != "":
-            self.camera_name = camera_name
-            self.camera = dependencies[Camera.get_resource_name(camera_name)]
+        self.source_cams = config.attributes.fields["source_cams"].list_value
+        self.cameras = {} # to be a map of (name -> camera)
+
+        for cam in self.source_cams:
+            self.cameras[cam] = dependencies[Camera.get_resource_name(cam)]
         
         with open(access_json, 'r') as f:
             accessStuff = json.load(f)
@@ -146,10 +145,10 @@ class AWS(Vision, Reconfigurable):
                                               extra: Optional[Dict[str, Any]] = None,
                                               timeout: Optional[float] = None,
                                               **kwargs) -> List[Classification]:
-        if camera_name != self.camera_name:
+        if camera_name not in self.source_cams:
             raise Exception(
-                "Camera name given to method",camera_name, " is not the one given to configuration ",self.camera_name)
-        cam = self.camera
+                "Camera name given to method",camera_name, " is not one of the configured source_cams ", self.source_cams)
+        cam = self.cameras[camera_name]
         img = await cam.get_image()
         return await self.get_classifications(image=img, count=count)
 
@@ -203,10 +202,10 @@ class AWS(Vision, Reconfigurable):
                                         timeout: Optional[float] = None,
                                         **kwargs) -> List[Detection]:
         
-        if camera_name != self.camera_name:
+        if camera_name not in self.source_cams:
             raise Exception(
-                "Camera name given to method",camera_name, " is not the one given to configuration ",self.camera_name)
-        cam = self.camera
+                "Camera name given to method",camera_name, " is not one of the configured source_cams ", self.source_cams)
+        cam = self.cameras[camera_name]
         img = await cam.get_image()
         return await self.get_detections(image=img)
     
