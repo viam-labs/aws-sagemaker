@@ -1,0 +1,4 @@
+pip
+viam-sdk
+boto3
+pillow == 10.0.1
