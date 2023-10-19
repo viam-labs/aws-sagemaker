@@ -1,6 +1,5 @@
 from io import BytesIO
 from typing import ClassVar, List, Mapping, Sequence, Any, Dict, Optional, Union, cast
-
 from typing_extensions import Self
 from PIL import Image
 
@@ -18,7 +17,6 @@ from viam.utils import ValueTypes
 import boto3
 import json
 
-
 class AWS(Vision, Reconfigurable):
     """
     AWS implements a vision service that only supports detections
@@ -32,10 +30,9 @@ class AWS(Vision, Reconfigurable):
     """
 
     # Here is where we define our new model's colon-delimited-triplet
-    # (acme:demo:mybase) viam = namespace, demo = family, mybase = model name.
+    # (viam:vision:aws-sagemaker) viam = namespace, vision = family, aws-sagemaker = model name.
     MODEL: ClassVar[Model] = Model(ModelFamily("viam", "vision"), "aws-sagemaker")
 
-    # Put more class variables here if/when we need them
     def __init__(self, name: str):
         super().__init__(name=name)
 
@@ -69,7 +66,7 @@ class AWS(Vision, Reconfigurable):
         source_cams = config.attributes.fields["source_cams"].list_value
     
         return source_cams
-
+    
 
     # Handles attribute reconfiguration
     def reconfigure(self,
@@ -80,11 +77,13 @@ class AWS(Vision, Reconfigurable):
         self.aws_region = config.attributes.fields["aws_region"].string_value
         access_json = config.attributes.fields["access_json"].string_value
         self.source_cams = config.attributes.fields["source_cams"].list_value
-        self.cameras = {} # to be a map of (name -> camera)
+        self.cameras = {} 
 
+        # Build cam_name -> camera map
         for cam in self.source_cams:
             self.cameras[cam] = dependencies[Camera.get_resource_name(cam)]
         
+        # Grab access information from json file
         with open(access_json, 'r') as f:
             accessStuff = json.load(f)
             self.access_key = accessStuff['access_key']
@@ -94,15 +93,11 @@ class AWS(Vision, Reconfigurable):
         self.client = boto3.client('sagemaker-runtime', region_name=self.aws_region,
                         aws_access_key_id= self.access_key,
                          aws_secret_access_key = self.secret_key)
-
+        
     """
     Implement the methods the Viam RDK defines for the vision service API
     (rdk:service:vision)
     """
-
-    # Tested with 3 detection and 3 classification models and went well.
-    # The problem is that detection models are slow AT THE ENDPOINT NOT MY DOING
-    # But it seems you can "Accept" different response types and that makes a time diff
 
     async def get_classifications(self,
                                  image: Union[Image.Image, RawImage],
@@ -113,10 +108,14 @@ class AWS(Vision, Reconfigurable):
                                  **kwargs) -> List[Classification]:
         classifications = []
         if isinstance(image, RawImage):
-            response = self.client.invoke_endpoint(EndpointName=self.endpoint_name, 
+            if image.mime_type in [CameraMimeType.JPEG, CameraMimeType.PNG]:
+                response = self.client.invoke_endpoint(EndpointName=self.endpoint_name, 
                                                    ContentType= 'application/x-image',
                                                    Accept='application/json;verbose',
-                                                   Body=image.data) # send image.data[24:]??
+                                                   Body=image.data) 
+            else:
+                raise Exception("Image mime type must be JPEG or PNG, not ", image.mime_type)
+
         else:
             stream = BytesIO()
             image = image.convert("RGB")
@@ -126,7 +125,7 @@ class AWS(Vision, Reconfigurable):
                                                    Accept='application/json;verbose',
                                                    Body=stream.getvalue())
             
-        # Either way... 
+        # Package results based on standardized output 
         out = json.loads(response['Body'].read())
         labels = out['labels']
         probs = out['probabilities']
@@ -136,7 +135,6 @@ class AWS(Vision, Reconfigurable):
             classifications.append({"class_name": res[i][0], "confidence": res[i][1]})
 
         return classifications
-    
 
     async def get_classifications_from_camera(self, 
                                               camera_name: str, 
@@ -151,8 +149,7 @@ class AWS(Vision, Reconfigurable):
         cam = self.cameras[camera_name]
         img = await cam.get_image()
         return await self.get_classifications(image=img, count=count)
-
-    
+ 
     async def get_detections(self,
                             image: Union[Image.Image, RawImage],
                             *,
@@ -162,11 +159,16 @@ class AWS(Vision, Reconfigurable):
         
         detections = []
         if isinstance(image, RawImage):
-            width, height = int.from_bytes(image.data[8:16], "big"), int.from_bytes(image.data[16:24], "big")
-            response = self.client.invoke_endpoint(EndpointName=self.endpoint_name, 
+            if image.mime_type in [CameraMimeType.JPEG, CameraMimeType.PNG]:
+                decoded = Image.open(BytesIO(image.data))
+                width, height = decoded.width, decoded.height
+                response = self.client.invoke_endpoint(EndpointName=self.endpoint_name, 
                                                    ContentType= 'application/x-image',
-                                                   Accept='application/json;verbose',  # be less verbose?
-                                                   Body=image.data) # send image.data[24:]??
+                                                   Accept='application/json;verbose',  
+                                                   Body=image.data) 
+            else:
+                 raise Exception("Image mime type must be JPEG or PNG, not ", image.mime_type)
+
         else:
             width, height = float(image.width), float(image.height)
             stream = BytesIO()
@@ -177,7 +179,7 @@ class AWS(Vision, Reconfigurable):
                                                    Accept='application/json;verbose',
                                                    Body=stream.getvalue())
             
-        # Either way... 
+        # Package results based on standardized output
         out = json.loads(response['Body'].read())
         boxes =  out['normalized_boxes']
         classes= out['classes']
@@ -193,7 +195,6 @@ class AWS(Vision, Reconfigurable):
                                          "x_min": int(xmin), "y_min": int(ymin), "x_max": int(xmax), "y_max": int(ymax) })
 
         return detections
-    
 
     async def get_detections_from_camera(self,
                                         camera_name: str,
@@ -201,14 +202,14 @@ class AWS(Vision, Reconfigurable):
                                         extra: Optional[Dict[str, Any]] = None,
                                         timeout: Optional[float] = None,
                                         **kwargs) -> List[Detection]:
-        
+
+
         if camera_name not in self.source_cams:
             raise Exception(
                 "Camera name given to method",camera_name, " is not one of the configured source_cams ", self.source_cams)
         cam = self.cameras[camera_name]
         img = await cam.get_image()
         return await self.get_detections(image=img)
-    
     
     async def get_object_point_clouds(self,
                                       camera_name: str,
