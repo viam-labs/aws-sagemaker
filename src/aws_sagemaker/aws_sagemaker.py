@@ -30,10 +30,9 @@ class AWS(Vision, Reconfigurable):
     """
 
     # Here is where we define our new model's colon-delimited-triplet
-    # (acme:demo:mybase) viam = namespace, demo = family, mybase = model name.
+    # (viam:vision:aws-sagemaker) viam = namespace, vision = family, aws-sagemaker = model name.
     MODEL: ClassVar[Model] = Model(ModelFamily("viam", "vision"), "aws-sagemaker")
 
-    # Put more class variables here if/when we need them
     def __init__(self, name: str):
         super().__init__(name=name)
 
@@ -78,11 +77,13 @@ class AWS(Vision, Reconfigurable):
         self.aws_region = config.attributes.fields["aws_region"].string_value
         access_json = config.attributes.fields["access_json"].string_value
         self.source_cams = config.attributes.fields["source_cams"].list_value
-        self.cameras = {} # to be a map of (name -> camera)
+        self.cameras = {} 
 
+        # Build cam_name -> camera map
         for cam in self.source_cams:
             self.cameras[cam] = dependencies[Camera.get_resource_name(cam)]
         
+        # Grab access information from json file
         with open(access_json, 'r') as f:
             accessStuff = json.load(f)
             self.access_key = accessStuff['access_key']
@@ -124,7 +125,7 @@ class AWS(Vision, Reconfigurable):
                                                    Accept='application/json;verbose',
                                                    Body=stream.getvalue())
             
-        # Either way... 
+        # Package results based on standardized output 
         out = json.loads(response['Body'].read())
         labels = out['labels']
         probs = out['probabilities']
@@ -148,8 +149,7 @@ class AWS(Vision, Reconfigurable):
         cam = self.cameras[camera_name]
         img = await cam.get_image()
         return await self.get_classifications(image=img, count=count)
-
-    
+ 
     async def get_detections(self,
                             image: Union[Image.Image, RawImage],
                             *,
@@ -179,7 +179,7 @@ class AWS(Vision, Reconfigurable):
                                                    Accept='application/json;verbose',
                                                    Body=stream.getvalue())
             
-        # Either way... 
+        # Package results based on standardized output
         out = json.loads(response['Body'].read())
         boxes =  out['normalized_boxes']
         classes= out['classes']
@@ -208,7 +208,7 @@ class AWS(Vision, Reconfigurable):
             raise Exception(
                 "Camera name given to method",camera_name, " is not one of the configured source_cams ", self.source_cams)
         cam = self.cameras[camera_name]
-        img = await cam.get_image(CameraMimeType.JPEG)
+        img = await cam.get_image()
         return await self.get_detections(image=img)
     
     async def get_object_point_clouds(self,
