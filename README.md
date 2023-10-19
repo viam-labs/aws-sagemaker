@@ -62,4 +62,4 @@ The module has a handful of associated attributes that are important for configu
   "access_key": "UE9S0AG9KS4F3",
   "secret_access_key": "L23LKkl0d5<M0R3S4F3"
 }
-'''
+```
