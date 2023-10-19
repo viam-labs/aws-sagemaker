@@ -164,8 +164,8 @@ class AWS(Vision, Reconfigurable):
                 width, height = decoded.width, decoded.height
                 response = self.client.invoke_endpoint(EndpointName=self.endpoint_name, 
                                                    ContentType= 'application/x-image',
-                                                   Accept='application/json;verbose',  # be less verbose?
-                                                   Body=image.data) # send image.data[24:]??
+                                                   Accept='application/json;verbose',  
+                                                   Body=image.data) 
             else:
                  raise Exception("Image mime type must be JPEG or PNG, not ", image.mime_type)
 
