@@ -1,2 +1,2 @@
-module.tar.gz: requirements.txt .env *.sh src/*.py
+module.tar.gz: requirements.txt *.sh src/*.py
 	tar czf module.tar.gz $^
