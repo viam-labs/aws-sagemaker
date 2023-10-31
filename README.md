@@ -1,5 +1,5 @@
 # aws-sagemaker
-Module of the Viam vision service to access models deployed on cloud endpoints using AWS Sagemaker.  This module allows you to access vision ML models that have been deplo
+Module of the Viam vision service to access models deployed on cloud endpoints using AWS Sagemaker.  This module allows you to access vision ML models that have been deployed to an AWS Sagemaker endpoint.
 
 ## Getting started
 
