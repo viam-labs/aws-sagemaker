@@ -11,8 +11,13 @@ This module implements the following methods of the [vision service API](https:/
   * `GetClassifications()`
   * `GetClassificationsFromCamera()`
 
+> [!NOTE]  
+> Before configuring your vision service, you must [create a robot](https://docs.viam.com/manage/fleet/robots/#add-a-new-robot).
 
 ## Configuration
+
+Navigate to the **Config** tab of your robot’s page in [the Viam app](https://app.viam.com/). Click on the **Services** subtab and click **Create service**. Select the `vision` type, then select the `aws-sagemaker` model. Enter a name for your service and click **Create**.
+
 ### Example Configuration
 
 ```json
@@ -46,14 +51,19 @@ This module implements the following methods of the [vision service API](https:/
 
 ```
 
-### Module Attributes
-The module has a handful of associated attributes that are important for configuration. Namely:
+> [!NOTE]  
+> For more information, see [Configure a Robot](https://docs.viam.com/manage/configuration/).
 
-  * __endpoint_name__ _(string)_ - The name of the endpoint as given by AWS
-  * __aws_region__ _(string)_ - The name of the region is AWS under which the model can be found
-  * __access_json__ _(string)_ - The on-robot location of a JSON file that contains AWS access credentials (see below)
-  * __source_cams__ _(list of strings)_ - The names of the camera(s) that may be used as input
+### Attributes
 
+The following attributes are available for `viam:vision:aws-sagemaker` vision services:
+
+| Name | Type | Inclusion | Description |
+| ---- | ---- | --------- | ----------- |
+| `endpoint_name` | string | **Required** | The name of the endpoint as given by AWS. |
+| `aws_region` | string | **Required** | The name of the region in AWS under which the model can be found. |
+| `access_json` | string | **Required** | The on-robot location of a JSON file that contains AWS access credentials [(see below)](#example-access-json). |
+| `source_cams` | array | **Required** | The names of the camera(s) you have configured on your robot that may be used as input for the vision service. |
 
 ### Example Access JSON
 
