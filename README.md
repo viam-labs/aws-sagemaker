@@ -56,7 +56,7 @@ Navigate to the **Config** tab of your robot’s page in [the Viam app](https://
 
 ### Attributes
 
-The following attributes are available for `viam:vision:aws-sagemake` vision services:
+The following attributes are available for `viam:vision:aws-sagemaker` vision services:
 
   * __endpoint_name__ _(string)_ - The name of the endpoint as given by AWS
   * __aws_region__ _(string)_ - The name of the region is AWS under which the model can be found
