@@ -59,7 +59,7 @@ Navigate to the **Config** tab of your robot’s page in [the Viam app](https://
 The following attributes are available for `viam:vision:aws-sagemaker` vision services:
 
   * __endpoint_name__ _(string)_ - The name of the endpoint as given by AWS
-  * __aws_region__ _(string)_ - The name of the region is AWS under which the model can be found
+  * __aws_region__ _(string)_ - The name of the region in AWS under which the model can be found
   * __access_json__ _(string)_ - The on-robot location of a JSON file that contains AWS access credentials [(see below)](#example-access-json)
   * __source_cams__ _(list of strings)_ - The names of the camera(s) that may be used as input
 
