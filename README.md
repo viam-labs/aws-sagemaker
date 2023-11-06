@@ -6,7 +6,19 @@ Configure this vision service as a [modular resource](https://docs.viam.com/modu
 
 ## Getting started
 
-The first step is to deploy your model to the AWS Sagemaker endpoint. You can do this programmatically or through the AWS console. Instructions [here](https://docs.aws.amazon.com/sagemaker/latest/dg/deploy-model.html).
+The first step is to deploy your model to the AWS Sagemaker endpoint.  You can deploy programmatically but we recommend doing it through the AWS console. __Instructions for setting up an endpoint__ (using a pre-trained Sagemaker Jumpstart model) are as follows:
+*  Log in to the AWS console as a root user or a user with administrator access
+*  At the Console Home, in the search bar, find and click Amazon Sagemaker
+*  Follow the instructions under “Getting started” to create a domain
+*  Launch your domain with Sagemaker Studio, which will open up JupyterLab in a new tab
+*  Go to the new tab. On the left bar, click Sagemaker Jumpstart > Models, notebooks, solutions
+*  (To sort the pre-trained models by task, click the ML tasks tab)
+*  Select a model under “Image Classification” or “Object Detection” (for classification or detection, respectively)
+*  Before deploying, under “Deployment Configuration”, choose the SageMaker hosting instance appropriate for your model (usually ml.m4.xlarge or ml.m5.xlarge) 
+* Finally, click Deploy! After a few moments your endpoint will be ready for inference.
+
+
+For more detailed instructions, click [here](https://docs.aws.amazon.com/sagemaker/latest/dg/deploy-model.html).
 
 > [!NOTE]  
 > Before configuring your vision service, you must [create a robot](https://docs.viam.com/manage/fleet/robots/#add-a-new-robot).
