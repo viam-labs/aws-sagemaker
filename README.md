@@ -4,7 +4,7 @@ Viam provides an `aws-sagemaker` model of [vision service](/services/vision) wit
 
 Configure this vision service as a [modular resource](https://docs.viam.com/modular-resources/) on your robot to access and perform inference with AWS-deployed ML models.
 
-## Getting started
+## Build and Run
 
 The first step is to deploy your model to the AWS Sagemaker endpoint.  You can deploy programmatically but we recommend doing it through the AWS console. __Instructions for setting up an endpoint__ (using a pre-trained Sagemaker Jumpstart model) are as follows:
 *  Log in to the AWS console as a root user or a user with administrator access
@@ -23,9 +23,47 @@ For more detailed instructions, click [here](https://docs.aws.amazon.com/sagemak
 > [!NOTE]  
 > Before configuring your vision service, you must [create a robot](https://docs.viam.com/manage/fleet/robots/#add-a-new-robot).
 
-## Configuration
+## Configure your `aws-sagemaker` vision service
 
 Navigate to the **Config** tab of your robot’s page in [the Viam app](https://app.viam.com/). Click on the **Services** subtab and click **Create service**. Select the `vision` type, then select the `aws-sagemaker` model. Enter a name for your service and click **Create**.
+
+On the new service panel, copy and paste the following attribute template into your service’s **Attributes** box. 
+```json
+{
+  "access_json": "/Users/myname/Documents/accessfile.json",
+  "endpoint_name": "",
+  "aws_region": "",
+  "source_cams": [
+    "myCam1",
+    "myCam2"
+  ]
+}
+```
+
+Edit and fill in the attributes as applicable and create an access JSON file.
+
+> [!NOTE]  
+> For more information, see [Configure a Robot](https://docs.viam.com/manage/configuration/).
+
+### Attributes
+
+The following attributes are available for `viam:vision:aws-sagemaker` vision services:
+
+| Name | Type | Inclusion | Description |
+| ---- | ---- | --------- | ----------- |
+| `endpoint_name` | string | **Required** | The name of the endpoint as given by AWS. |
+| `aws_region` | string | **Required** | The name of the region in AWS under which the model can be found. |
+| `access_json` | string | **Required** | The on-robot location of a JSON file that contains your AWS access credentials (AWS Access Key ID and Secret Access Key). Follow [these instructions](https://www.msp360.com/resources/blog/how-to-find-your-aws-access-key-id-and-secret-access-key/) to retrieve your credentials, and reference [this example JSON file containing credentials](#example-access_json). |
+| `source_cams` | array | **Required** | The name of each [camera](https://docs.viam.com/components/camera) you have configured on your robot that you want to use as input for the vision service. |
+
+### Example Access JSON
+
+```json
+{
+  "access_key": "UE9S0AG9KS4F3",
+  "secret_access_key": "L23LKkl0d5<M0R3S4F3"
+}
+```
 
 ### Example Configuration
 
@@ -60,28 +98,6 @@ Navigate to the **Config** tab of your robot’s page in [the Viam app](https://
 
 ```
 
-> [!NOTE]  
-> For more information, see [Configure a Robot](https://docs.viam.com/manage/configuration/).
-
-### Attributes
-
-The following attributes are available for `viam:vision:aws-sagemaker` vision services:
-
-| Name | Type | Inclusion | Description |
-| ---- | ---- | --------- | ----------- |
-| `endpoint_name` | string | **Required** | The name of the endpoint as given by AWS. |
-| `aws_region` | string | **Required** | The name of the region in AWS under which the model can be found. |
-| `access_json` | string | **Required** | The on-robot location of a JSON file that contains your AWS access credentials (AWS Access Key ID and Secret Access Key). Follow [these instructions](https://www.msp360.com/resources/blog/how-to-find-your-aws-access-key-id-and-secret-access-key/) to retrieve your credentials, and reference [this example JSON file containing credentials](#example-access_json). |
-| `source_cams` | array | **Required** | The name of each [camera](/components/camera) you have configured on your robot that you want to use as input for the vision service. |
-
-### Example Access JSON
-
-```json
-{
-  "access_key": "UE9S0AG9KS4F3",
-  "secret_access_key": "L23LKkl0d5<M0R3S4F3"
-}
-```
 
 ## Next steps: use your ML-enabled vision service
 
