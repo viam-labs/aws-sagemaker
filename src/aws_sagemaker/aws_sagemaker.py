@@ -4,7 +4,7 @@ from typing_extensions import Self
 from PIL import Image
 
 from viam.components.camera import Camera
-from viam.media.video import RawImage, CameraMimeType
+from viam.media.video import RawImage, CameraMimeType, ViamImage
 from viam.proto.service.vision import Classification, Detection
 from viam.services.vision import Vision
 from viam.module.types import Reconfigurable
@@ -100,26 +100,27 @@ class AWS(Vision, Reconfigurable):
     """
 
     async def get_classifications(self,
-                                 image: Union[Image.Image, RawImage],
+                                 image: ViamImage,
                                  count: int,
                                  *, 
                                  extra: Optional[Dict[str, Any]] = None,
                                  timeout: Optional[float] = None,
                                  **kwargs) -> List[Classification]:
         classifications = []
-        if isinstance(image, RawImage):
-            if image.mime_type in [CameraMimeType.JPEG, CameraMimeType.PNG]:
+        img = image.image
+        if isinstance(img, RawImage):
+            if img.mime_type in [CameraMimeType.JPEG, CameraMimeType.PNG]:
                 response = self.client.invoke_endpoint(EndpointName=self.endpoint_name, 
                                                    ContentType= 'application/x-image',
                                                    Accept='application/json;verbose',
-                                                   Body=image.data) 
+                                                   Body=img.data) 
             else:
-                raise Exception("Image mime type must be JPEG or PNG, not ", image.mime_type)
+                raise Exception("Image mime type must be JPEG or PNG, not ", img.mime_type)
 
         else:
             stream = BytesIO()
-            image = image.convert("RGB")
-            image.save(stream, "JPEG")
+            img = img.convert("RGB")
+            img.save(stream, "JPEG")
             response = self.client.invoke_endpoint(EndpointName=self.endpoint_name, 
                                                    ContentType= 'application/x-image',
                                                    Accept='application/json;verbose',
@@ -151,29 +152,30 @@ class AWS(Vision, Reconfigurable):
         return await self.get_classifications(image=img, count=count)
  
     async def get_detections(self,
-                            image: Union[Image.Image, RawImage],
+                            image: ViamImage,
                             *,
                             extra: Optional[Dict[str, Any]] = None,
                             timeout: Optional[float] = None,
                             **kwargs) -> List[Detection]:
         
         detections = []
-        if isinstance(image, RawImage):
-            if image.mime_type in [CameraMimeType.JPEG, CameraMimeType.PNG]:
-                decoded = Image.open(BytesIO(image.data))
+        img = image.image
+        if isinstance(img, RawImage):
+            if img.mime_type in [CameraMimeType.JPEG, CameraMimeType.PNG]:
+                decoded = Image.open(BytesIO(img.data))
                 width, height = decoded.width, decoded.height
                 response = self.client.invoke_endpoint(EndpointName=self.endpoint_name, 
                                                    ContentType= 'application/x-image',
                                                    Accept='application/json;verbose',  
-                                                   Body=image.data) 
+                                                   Body=img.data) 
             else:
-                 raise Exception("Image mime type must be JPEG or PNG, not ", image.mime_type)
+                 raise Exception("Image mime type must be JPEG or PNG, not ", img.mime_type)
 
         else:
-            width, height = float(image.width), float(image.height)
+            width, height = float(img.width), float(img.height)
             stream = BytesIO()
-            image = image.convert("RGB")
-            image.save(stream, "JPEG")
+            img = img.convert("RGB")
+            img.save(stream, "JPEG")
             response = self.client.invoke_endpoint(EndpointName=self.endpoint_name, 
                                                    ContentType= 'application/x-image',
                                                    Accept='application/json;verbose',
