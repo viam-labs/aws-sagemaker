@@ -1,4 +1,4 @@
 pip
-viam-sdk ==0.20.0
+viam-sdk
 boto3
 pillow == 10.0.1

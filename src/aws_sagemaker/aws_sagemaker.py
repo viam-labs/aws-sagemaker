@@ -6,7 +6,7 @@ from PIL import Image
 from viam.components.camera import Camera
 from viam.media.video import RawImage, CameraMimeType, ViamImage
 from viam.proto.service.vision import Classification, Detection
-from viam.services.vision import Vision
+from viam.services.vision import Vision, CaptureAllResult
 from viam.module.types import Reconfigurable
 from viam.proto.app.robot import ServiceConfig
 from viam.proto.common import PointCloudObject, ResourceName
@@ -107,25 +107,15 @@ class AWS(Vision, Reconfigurable):
                                  timeout: Optional[float] = None,
                                  **kwargs) -> List[Classification]:
         classifications = []
-        img = image.image
-        if isinstance(img, RawImage):
-            if img.mime_type in [CameraMimeType.JPEG, CameraMimeType.PNG]:
-                response = self.client.invoke_endpoint(EndpointName=self.endpoint_name, 
-                                                   ContentType= 'application/x-image',
-                                                   Accept='application/json;verbose',
-                                                   Body=img.data) 
-            else:
-                raise Exception("Image mime type must be JPEG or PNG, not ", img.mime_type)
-
-        else:
-            stream = BytesIO()
-            img = img.convert("RGB")
-            img.save(stream, "JPEG")
+        
+        if image.mime_type in [CameraMimeType.JPEG, CameraMimeType.PNG]:
             response = self.client.invoke_endpoint(EndpointName=self.endpoint_name, 
-                                                   ContentType= 'application/x-image',
-                                                   Accept='application/json;verbose',
-                                                   Body=stream.getvalue())
-            
+                                                ContentType= 'application/x-image',
+                                                Accept='application/json;verbose',
+                                                Body=image.data) 
+        else:
+            raise Exception("Image mime type must be JPEG or PNG, not ", image.mime_type)
+
         # Package results based on standardized output 
         out = json.loads(response['Body'].read())
         labels = out['labels']
@@ -159,28 +149,17 @@ class AWS(Vision, Reconfigurable):
                             **kwargs) -> List[Detection]:
         
         detections = []
-        img = image.image
-        if isinstance(img, RawImage):
-            if img.mime_type in [CameraMimeType.JPEG, CameraMimeType.PNG]:
-                decoded = Image.open(BytesIO(img.data))
-                width, height = decoded.width, decoded.height
-                response = self.client.invoke_endpoint(EndpointName=self.endpoint_name, 
-                                                   ContentType= 'application/x-image',
-                                                   Accept='application/json;verbose',  
-                                                   Body=img.data) 
-            else:
-                 raise Exception("Image mime type must be JPEG or PNG, not ", img.mime_type)
 
-        else:
-            width, height = float(img.width), float(img.height)
-            stream = BytesIO()
-            img = img.convert("RGB")
-            img.save(stream, "JPEG")
+        if image.mime_type in [CameraMimeType.JPEG, CameraMimeType.PNG]:
+            decoded = Image.open(BytesIO(image.data))
+            width, height = decoded.width, decoded.height
             response = self.client.invoke_endpoint(EndpointName=self.endpoint_name, 
-                                                   ContentType= 'application/x-image',
-                                                   Accept='application/json;verbose',
-                                                   Body=stream.getvalue())
-            
+                                                ContentType= 'application/x-image',
+                                                Accept='application/json;verbose',  
+                                                Body=image.data) 
+        else:
+                raise Exception("Image mime type must be JPEG or PNG, not ", image.mime_type)
+
         # Package results based on standardized output
         out = json.loads(response['Body'].read())
         boxes =  out['normalized_boxes']
@@ -211,6 +190,7 @@ class AWS(Vision, Reconfigurable):
                 "Camera name given to method",camera_name, " is not one of the configured source_cams ", self.source_cams)
         cam = self.cameras[camera_name]
         img = await cam.get_image()
+
         return await self.get_detections(image=img)
     
     async def get_object_point_clouds(self,
@@ -220,6 +200,53 @@ class AWS(Vision, Reconfigurable):
                                       timeout: Optional[float] = None,
                                       **kwargs) -> List[PointCloudObject]:
         raise NotImplementedError
+    
+    async def get_properties(
+            self,
+            *,
+            extra: Optional[Mapping[str, Any]] = None,
+            timeout: Optional[float] = None) -> Vision.Properties:
+                return Vision.Properties(
+                classifications_supported=True,
+                detections_supported=True,
+                object_point_clouds_supported=False,
+        )
+    
+
+    async def capture_all_from_camera(
+        self,
+        camera_name: str,
+        return_image: bool = False,
+        return_classifications: bool = False,
+        return_detections: bool = False,
+        return_object_point_clouds: bool = False,
+        *,
+        extra: Optional[Mapping[str, Any]] = None,
+        timeout: Optional[float] = None,
+    ) -> CaptureAllResult:
+    
+        result = CaptureAllResult()
+        if camera_name not in self.source_cams:
+            raise Exception(
+                "Camera name given to method",camera_name, " is not one of the configured source_cams ", self.source_cams)
+        cam = self.cameras[camera_name]
+        img = await cam.get_image(mime_type=CameraMimeType.JPEG)
+        if return_image:
+            result.image = img
+        if return_classifications:
+            classifs = await self.get_classifications(img, 5)
+            result.classifications = classifs
+        if return_detections:
+            dets = await self.get_detections(img)
+            result.detections = dets 
+        # No object point clouds
+        return result
+    
+        
+    
+
+    
+
     
     async def do_command(self,
                         command: Mapping[str, ValueTypes],
